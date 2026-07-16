@@ -1,13 +1,12 @@
-import { StatusBar } from "expo-status-bar";
 import { StyleSheet, Text, View } from "react-native";
+import AppNavigator from "./src/navigations/AppNavigator";
+import { NavigationContainer } from "@react-navigation/native";
 
 export default function App() {
-  // test yorum satiri
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start</Text>
-      <Text>Open up App.tsx to start</Text>
-    </View>
+    <NavigationContainer>
+      <AppNavigator />
+    </NavigationContainer>
   );
 }
 
