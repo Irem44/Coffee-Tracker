@@ -12,9 +12,11 @@ const AppNavigator = () => {
     <Tabs.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {},
+        tabBarStyle: {
+          backgroundColor: "#12100E",
+        },
         tabBarLabelStyle: {
-          color: "#60241E",
+          color: "#D4A373",
         },
       }}
     >
@@ -26,7 +28,7 @@ const AppNavigator = () => {
             <Ionicons
               name={focused ? "cafe" : "cafe-outline"}
               size={size}
-              color={"#60241E"}
+              color={"#D4A373"}
             />
           ),
         }}
