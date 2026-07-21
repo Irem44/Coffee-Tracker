@@ -6,16 +6,26 @@ import {
   Dimensions,
   ActivityIndicator,
   TouchableOpacity,
+  ScrollView,
+  Modal,
+  TextInput,
+  FlatList,
 } from "react-native";
 import CircularProgress from "react-native-circular-progress-indicator";
 import { getTime } from "../../utils/getTime";
 import { s, vs } from "react-native-size-matters";
-import { MaterialIcons } from "@expo/vector-icons";
+import { Entypo, FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFonts, Oswald_700Bold } from "@expo-google-fonts/oswald";
 import Toast from "react-native-toast-message";
 
 const SCREEN_WIDTH = Dimensions.get("screen").width;
+
+type list = {
+  id: number;
+  name: string;
+  value: number;
+};
 
 const Today = () => {
   const [caffeineValue, setCaffeineValue] = useState<number>(0);
@@ -23,6 +33,10 @@ const Today = () => {
   const [filtre, setFiltre] = useState<number>(140);
   const [americano, setAmericano] = useState<number>(120);
   const [maxValue, setMaxValue] = useState<number>(400);
+  const [modulOpen, setModulOpen] = useState<boolean>(false);
+  const [customName, setCustomName] = useState<string>("");
+  const [customCaffeinValue, setCustomCaffeinValue] = useState<number>(0);
+  const [customCaffeinList, setCustomCaffeinList] = useState<list[]>([]);
   const [fontsLoaded] = useFonts({
     Oswald_700Bold,
   });
@@ -55,75 +69,182 @@ const Today = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.titleStyle}>{getTime()}</Text>
-      {/* Circuller Progress */}
-      <View style={styles.circularProgressStyle}>
-        <CircularProgress
-          value={caffeineValue ? caffeineValue : 0}
-          maxValue={maxValue}
-          radius={110}
-          duration={1000}
-          progressValueColor={"#F4EFEA"} // İçerideki rakamın rengi (Krem)
-          activeStrokeColor={`${caffeineValue > 400 ? "#b81212" : "#D4A373"}`} // Dolan çizginin rengi (Karamel)
-          inActiveStrokeColor={"#c4b0a3"} // Arkadaki boş çizginin rengi (Koyu kahve)
-          activeStrokeWidth={18}
-          inActiveStrokeWidth={12}
-          title={"mg"}
-          titleColor={"#c4b0a3"}
-          titleStyle={{ fontWeight: "bold", fontSize: 16 }}
-          valueSuffix={""}
-        />
-        <TouchableOpacity
-          style={styles.resetButton}
-          onPress={() => setCaffeineValue(0)}
-        >
-          <Text style={styles.cardText}>Sıfırla</Text>
-        </TouchableOpacity>
-      </View>
-      {/* Fast Add */}
-      <View style={styles.fastAddContainer}>
-        <View
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            flexDirection: "row",
-            alignItems: "center",
-          }}
-        >
-          <Text style={styles.fastAddTitle}>Hızlı Ekle</Text>
-          <MaterialIcons
-            name="free-breakfast"
-            size={25}
-            color="white"
-            style={{ marginLeft: 8, paddingTop: 6 }}
+      <ScrollView>
+        <Text style={styles.titleStyle}>{getTime()}</Text>
+        {/* Circuller Progress */}
+        <View style={styles.circularProgressStyle}>
+          <CircularProgress
+            value={caffeineValue ? caffeineValue : 0}
+            maxValue={maxValue}
+            radius={110}
+            duration={1000}
+            progressValueColor={"#F4EFEA"} // İçerideki rakamın rengi (Krem)
+            activeStrokeColor={`${caffeineValue > 400 ? "#b81212" : "#D4A373"}`} // Dolan çizginin rengi (Karamel)
+            inActiveStrokeColor={"#c4b0a3"} // Arkadaki boş çizginin rengi (Koyu kahve)
+            activeStrokeWidth={18}
+            inActiveStrokeWidth={12}
+            title={"mg"}
+            titleColor={"#c4b0a3"}
+            titleStyle={{ fontWeight: "bold", fontSize: 16 }}
+            valueSuffix={""}
           />
+          {/* Buttons */}
+          <View
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              alignSelf: "flex-end",
+              marginTop: 15,
+            }}
+          >
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={() => setCaffeineValue(0)}
+            >
+              <Text style={styles.cardText}>Sıfırla</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={() => setModulOpen(true)}
+            >
+              <Text style={styles.cardText}>Ekle</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        {/* Latte Field */}
-        <TouchableOpacity
-          style={styles.fastAddCard}
-          onPress={() => setCaffeineValue((prev: any) => prev + latte)}
-        >
-          <Text style={styles.cardText}>Latte</Text>
-          <Text style={styles.mgStyle}>{`(${latte} mg)`}</Text>
-        </TouchableOpacity>
-        {/* Filtre Field */}
-        <TouchableOpacity
-          style={styles.fastAddCard}
-          onPress={() => setCaffeineValue((prev: any) => prev + filtre)}
-        >
-          <Text style={styles.cardText}>Filtre</Text>
-          <Text style={styles.mgStyle}>{`(${filtre} mg)`}</Text>
-        </TouchableOpacity>
-        {/* Americano Field */}
-        <TouchableOpacity
-          style={styles.fastAddCard}
-          onPress={() => setCaffeineValue((prev: any) => prev + americano)}
-        >
-          <Text style={styles.cardText}>Americano</Text>
-          <Text style={styles.mgStyle}>{`(${americano} mg)`}</Text>
-        </TouchableOpacity>
-      </View>
-      <Toast />
+        {/* Fast Add */}
+        <View style={styles.fastAddContainer}>
+          <View
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              flexDirection: "row",
+              alignItems: "center",
+            }}
+          >
+            <Text style={styles.fastAddTitle}>Hızlı Ekle</Text>
+            <MaterialIcons
+              name="free-breakfast"
+              size={25}
+              color="white"
+              style={{ marginLeft: 8, paddingTop: 6 }}
+            />
+          </View>
+          {/* Latte Field */}
+          <TouchableOpacity
+            style={styles.fastAddCard}
+            onPress={() => setCaffeineValue((prev: any) => prev + latte)}
+          >
+            <Text style={styles.cardText}>Latte</Text>
+            <Text style={styles.mgStyle}>{`(${latte} mg)`}</Text>
+          </TouchableOpacity>
+          {/* Filtre Field */}
+          <TouchableOpacity
+            style={styles.fastAddCard}
+            onPress={() => setCaffeineValue((prev: any) => prev + filtre)}
+          >
+            <Text style={styles.cardText}>Filtre</Text>
+            <Text style={styles.mgStyle}>{`(${filtre} mg)`}</Text>
+          </TouchableOpacity>
+          {/* Americano Field */}
+          <TouchableOpacity
+            style={styles.fastAddCard}
+            onPress={() => setCaffeineValue((prev: any) => prev + americano)}
+          >
+            <Text style={styles.cardText}>Americano</Text>
+            <Text style={styles.mgStyle}>{`(${americano} mg)`}</Text>
+          </TouchableOpacity>
+        </View>
+        {/* Today's history */}
+        <View style={styles.todaysMainContainer}>
+          <View style={styles.todaysContainer}>
+            <Text style={styles.fastAddTitle}>Bugün içilenler</Text>
+            <MaterialIcons
+              name="today"
+              size={25}
+              color="white"
+              style={{ paddingTop: 10 }}
+            />
+          </View>
+          {customCaffeinList.length > 0 &&
+            customCaffeinList.map((item) => (
+              <View style={styles.fastAddCard}>
+                <Text style={{ color: "#fff" }}>
+                  {item.name} ({item.value} mg)
+                </Text>
+              </View>
+            ))}
+          {customCaffeinList.length <= 0 && (
+            <View
+              style={{
+                width: SCREEN_WIDTH,
+                height: 200,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Entypo name="emoji-sad" size={50} color="white" />
+              <Text style={styles.mgStyle}>Henüz kafein eklemedin</Text>
+            </View>
+          )}
+        </View>
+        <Toast />
+      </ScrollView>
+
+      {/* Custom Coffein */}
+      <Modal visible={modulOpen} animationType="slide" transparent={false}>
+        <SafeAreaView style={styles.modulContainer}>
+          <View
+            style={{
+              width: SCREEN_WIDTH,
+            }}
+          >
+            <TouchableOpacity onPress={() => setModulOpen(false)}>
+              <FontAwesome
+                name="close"
+                color="white"
+                style={{
+                  ...styles.cardText,
+                  alignSelf: "flex-end",
+                  marginRight: 20,
+                  fontSize: 25,
+                }}
+              />
+            </TouchableOpacity>
+            <Text style={{ ...styles.fastAddTitle }}>
+              Ne Kadar Kafein Aldın?
+            </Text>
+          </View>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Ad"
+            onChangeText={(text) => setCustomName(text)}
+          />
+          <TextInput
+            style={styles.textInput}
+            placeholder="Kafein Miktar (mg)"
+            onChangeText={(text) => setCustomCaffeinValue(Number(text))}
+            keyboardType="numeric"
+          />
+          <TouchableOpacity
+            style={styles.resetButton}
+            onPress={() => {
+              setCustomCaffeinList((prev) => [
+                ...prev,
+                {
+                  id: Math.random(),
+                  name: customName,
+                  value: customCaffeinValue,
+                },
+              ]);
+              setModulOpen(false);
+              setCaffeineValue((prev) => prev + customCaffeinValue);
+            }}
+          >
+            <Text style={styles.cardText}>Ekle</Text>
+          </TouchableOpacity>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -135,8 +256,7 @@ const styles = StyleSheet.create({
   },
   titleStyle: {
     color: "#fff",
-    position: "absolute",
-    top: 30,
+    top: 0,
     left: 10,
     fontSize: 25,
     fontFamily: "Oswald_700Bold",
@@ -148,7 +268,7 @@ const styles = StyleSheet.create({
   },
   fastAddContainer: {
     width: SCREEN_WIDTH,
-    height: vs(300),
+    height: vs(250),
     display: "flex",
     alignItems: "flex-start",
     justifyContent: "center",
@@ -204,6 +324,40 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  todaysMainContainer: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "flex-start",
+    marginLeft: 20,
+    gap: 10,
+  },
+  todaysContainer: {
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    gap: 10,
+  },
+  modulContainer: {
+    flex: 1,
+    backgroundColor: "#12100E",
+    display: "flex",
+    justifyContent: "flex-start",
+    alignItems: "flex-start",
+    gap: 15,
+    padding: 10,
+  },
+  textInput: {
+    width: vs(280),
+    height: 50,
+    borderColor: "#fff",
+    borderRadius: 10,
+    backgroundColor: "white",
+    color: "#908989",
+    fontSize: 15,
+    fontFamily: "Oswald_700Bold",
+  },
+  todaysCard: {},
 });
 
 export default Today;
