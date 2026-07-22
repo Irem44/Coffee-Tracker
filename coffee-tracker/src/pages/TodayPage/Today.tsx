@@ -9,37 +9,43 @@ import {
   ScrollView,
   Modal,
   TextInput,
-  FlatList,
 } from "react-native";
 import CircularProgress from "react-native-circular-progress-indicator";
 import { getTime } from "../../utils/getTime";
-import { s, vs } from "react-native-size-matters";
-import { Entypo, FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import {
+  MaterialIcons,
+  Entypo,
+  FontAwesome,
+  Ionicons,
+} from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFonts, Oswald_700Bold } from "@expo-google-fonts/oswald";
 import Toast from "react-native-toast-message";
 
 const SCREEN_WIDTH = Dimensions.get("screen").width;
 
-type list = {
-  id: number;
+type DrinkItem = {
+  id: string;
   name: string;
   value: number;
 };
 
 const Today = () => {
   const [caffeineValue, setCaffeineValue] = useState<number>(0);
-  const [latte, setLatte] = useState<number>(80);
-  const [filtre, setFiltre] = useState<number>(140);
-  const [americano, setAmericano] = useState<number>(120);
-  const [maxValue, setMaxValue] = useState<number>(400);
+  const [latte] = useState<number>(80);
+  const [filtre] = useState<number>(140);
+  const [americano] = useState<number>(120);
+  const [maxValue] = useState<number>(400);
+
   const [modulOpen, setModulOpen] = useState<boolean>(false);
   const [customName, setCustomName] = useState<string>("");
-  const [customCaffeinValue, setCustomCaffeinValue] = useState<number>(0);
-  const [customCaffeinList, setCustomCaffeinList] = useState<list[]>([]);
+  const [customCaffeinValue, setCustomCaffeinValue] = useState<string>("");
+  const [customCaffeinList, setCustomCaffeinList] = useState<DrinkItem[]>([]);
+
   const [fontsLoaded] = useFonts({
     Oswald_700Bold,
   });
+
   useEffect(() => {
     if (caffeineValue > 400) {
       Toast.show({
@@ -47,21 +53,51 @@ const Today = () => {
         text1: "Yüksek Kafein Uyarısı! ⚠️",
         text2: `Günlük güvenli sınırı aştınız (${caffeineValue} mg).`,
         position: "top",
-        visibilityTime: 1000,
+        visibilityTime: 2500,
         autoHide: true,
       });
     }
   }, [caffeineValue]);
 
-  // Fontlar yüklenene kadar boş ekran veya yükleniyor ikonu gösteriyoruz
+  // Yeni içecek ekleme fonksiyonu
+  const handleAddDrink = (name: string, value: number) => {
+    const newItem: DrinkItem = {
+      id: Date.now().toString() + Math.random().toString(),
+      name,
+      value,
+    };
+    setCustomCaffeinList((prev) => [newItem, ...prev]);
+    setCaffeineValue((prev) => prev + value);
+  };
+
+  // İçecek silme fonksiyonu (Toplama değerden mg miktarını düşer)
+  const handleDeleteDrink = (id: string, value: number) => {
+    setCustomCaffeinList((prev) => prev.filter((item) => item.id !== id));
+    setCaffeineValue((prev) => Math.max(0, prev - value));
+  };
+
+  // Özel içecek ekleme ve modal kapatma
+  const handleCustomAdd = () => {
+    const numericValue = Number(customCaffeinValue);
+    if (!customName.trim() || isNaN(numericValue) || numericValue <= 0) {
+      Toast.show({
+        type: "error",
+        text1: "Eksik Bilgi",
+        text2: "Lütfen geçerli bir isim ve mg miktarı girin.",
+        position: "bottom",
+      });
+      return;
+    }
+
+    handleAddDrink(customName.trim(), numericValue);
+    setCustomName("");
+    setCustomCaffeinValue("");
+    setModulOpen(false);
+  };
+
   if (!fontsLoaded) {
     return (
-      <View
-        style={[
-          styles.container,
-          { justifyContent: "center", alignItems: "center" },
-        ]}
-      >
+      <View style={[styles.container, styles.center]}>
         <ActivityIndicator size="large" color="#D4A373" />
       </View>
     );
@@ -69,180 +105,165 @@ const Today = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         <Text style={styles.titleStyle}>{getTime()}</Text>
-        {/* Circuller Progress */}
+
+        {/* Circular Progress Container */}
         <View style={styles.circularProgressStyle}>
           <CircularProgress
-            value={caffeineValue ? caffeineValue : 0}
+            value={caffeineValue}
             maxValue={maxValue}
-            radius={110}
-            duration={1000}
-            progressValueColor={"#F4EFEA"} // İçerideki rakamın rengi (Krem)
-            activeStrokeColor={`${caffeineValue > 400 ? "#b81212" : "#D4A373"}`} // Dolan çizginin rengi (Karamel)
-            inActiveStrokeColor={"#c4b0a3"} // Arkadaki boş çizginin rengi (Koyu kahve)
-            activeStrokeWidth={18}
+            radius={105}
+            duration={800}
+            progressValueColor={"#F4EFEA"}
+            activeStrokeColor={caffeineValue > 400 ? "#E63946" : "#D4A373"}
+            inActiveStrokeColor={"#2A2421"}
+            activeStrokeWidth={16}
             inActiveStrokeWidth={12}
             title={"mg"}
-            titleColor={"#c4b0a3"}
-            titleStyle={{ fontWeight: "bold", fontSize: 16 }}
-            valueSuffix={""}
+            titleColor={"#A0958E"}
+            titleStyle={{ fontWeight: "600", fontSize: 15 }}
           />
-          {/* Buttons */}
-          <View
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              alignSelf: "flex-end",
-              marginTop: 15,
-            }}
-          >
+
+          {/* Action Buttons Row */}
+          <View style={styles.actionButtonsRow}>
             <TouchableOpacity
               style={styles.resetButton}
-              onPress={() => setCaffeineValue(0)}
-            >
-              <Text style={styles.cardText}>Sıfırla</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.resetButton}
-              onPress={() => setModulOpen(true)}
-            >
-              <Text style={styles.cardText}>Ekle</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        {/* Fast Add */}
-        <View style={styles.fastAddContainer}>
-          <View
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              flexDirection: "row",
-              alignItems: "center",
-            }}
-          >
-            <Text style={styles.fastAddTitle}>Hızlı Ekle</Text>
-            <MaterialIcons
-              name="free-breakfast"
-              size={25}
-              color="white"
-              style={{ marginLeft: 8, paddingTop: 6 }}
-            />
-          </View>
-          {/* Latte Field */}
-          <TouchableOpacity
-            style={styles.fastAddCard}
-            onPress={() => setCaffeineValue((prev: any) => prev + latte)}
-          >
-            <Text style={styles.cardText}>Latte</Text>
-            <Text style={styles.mgStyle}>{`(${latte} mg)`}</Text>
-          </TouchableOpacity>
-          {/* Filtre Field */}
-          <TouchableOpacity
-            style={styles.fastAddCard}
-            onPress={() => setCaffeineValue((prev: any) => prev + filtre)}
-          >
-            <Text style={styles.cardText}>Filtre</Text>
-            <Text style={styles.mgStyle}>{`(${filtre} mg)`}</Text>
-          </TouchableOpacity>
-          {/* Americano Field */}
-          <TouchableOpacity
-            style={styles.fastAddCard}
-            onPress={() => setCaffeineValue((prev: any) => prev + americano)}
-          >
-            <Text style={styles.cardText}>Americano</Text>
-            <Text style={styles.mgStyle}>{`(${americano} mg)`}</Text>
-          </TouchableOpacity>
-        </View>
-        {/* Today's history */}
-        <View style={styles.todaysMainContainer}>
-          <View style={styles.todaysContainer}>
-            <Text style={styles.fastAddTitle}>Bugün içilenler</Text>
-            <MaterialIcons
-              name="today"
-              size={25}
-              color="white"
-              style={{ paddingTop: 10 }}
-            />
-          </View>
-          {customCaffeinList.length > 0 &&
-            customCaffeinList.map((item) => (
-              <View style={styles.fastAddCard}>
-                <Text style={{ color: "#fff" }}>
-                  {item.name} ({item.value} mg)
-                </Text>
-              </View>
-            ))}
-          {customCaffeinList.length <= 0 && (
-            <View
-              style={{
-                width: SCREEN_WIDTH,
-                height: 200,
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
+              onPress={() => {
+                setCaffeineValue(0);
+                setCustomCaffeinList([]);
               }}
             >
-              <Entypo name="emoji-sad" size={50} color="white" />
-              <Text style={styles.mgStyle}>Henüz kafein eklemedin</Text>
+              <Text style={styles.resetButtonText}>Sıfırla</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={() => setModulOpen(true)}
+            >
+              <Text style={styles.primaryButtonText}>+ Ekle</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Fast Add Section */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Hızlı Ekle</Text>
+            <MaterialIcons name="free-breakfast" size={22} color="#D4A373" />
+          </View>
+
+          <TouchableOpacity
+            style={styles.fastAddCard}
+            onPress={() => handleAddDrink("Latte", latte)}
+          >
+            <Text style={styles.cardTitle}>Latte</Text>
+            <Text style={styles.cardSubtitle}>{`(${latte} mg)`}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.fastAddCard}
+            onPress={() => handleAddDrink("Filtre Kahve", filtre)}
+          >
+            <Text style={styles.cardTitle}>Filtre Kahve</Text>
+            <Text style={styles.cardSubtitle}>{`(${filtre} mg)`}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.fastAddCard}
+            onPress={() => handleAddDrink("Americano", americano)}
+          >
+            <Text style={styles.cardTitle}>Americano</Text>
+            <Text style={styles.cardSubtitle}>{`(${americano} mg)`}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Today's History Section */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Bugün İçilenler</Text>
+            <MaterialIcons
+              name="today"
+              size={22}
+              color="#D4A373"
+              style={{ marginTop: 8 }}
+            />
+          </View>
+
+          {customCaffeinList.length > 0 ? (
+            customCaffeinList.map((item) => (
+              <View key={item.id} style={styles.historyCard}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.historyName}>{item.name}</Text>
+                  <Text style={styles.historyValue}>{item.value} mg</Text>
+                </View>
+
+                {/* Kart İçi Aksiyonlar: Ekle & Sil */}
+                <View style={styles.cardActionsRow}>
+                  <TouchableOpacity
+                    style={styles.addMoreButton}
+                    onPress={() =>
+                      setCaffeineValue((prev) => prev + item.value)
+                    }
+                  >
+                    <Ionicons name="add" size={16} color="#D4A373" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteDrink(item.id, item.value)}
+                  >
+                    <Ionicons name="trash-outline" size={16} color="#E63946" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Entypo name="emoji-sad" size={40} color="#4A423D" />
+              <Text style={styles.emptyText}>Henüz kafein eklemedin</Text>
             </View>
           )}
         </View>
+
         <Toast />
       </ScrollView>
 
-      {/* Custom Coffein */}
+      {/* Add Custom Caffeine Modal */}
       <Modal visible={modulOpen} animationType="slide" transparent={false}>
         <SafeAreaView style={styles.modulContainer}>
-          <View
-            style={{
-              width: SCREEN_WIDTH,
-            }}
-          >
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Ne Kadar Kafein Aldın?</Text>
             <TouchableOpacity onPress={() => setModulOpen(false)}>
-              <FontAwesome
-                name="close"
-                color="white"
-                style={{
-                  ...styles.cardText,
-                  alignSelf: "flex-end",
-                  marginRight: 20,
-                  fontSize: 25,
-                }}
-              />
+              <FontAwesome name="close" color="#A0958E" size={24} />
             </TouchableOpacity>
-            <Text style={{ ...styles.fastAddTitle }}>
-              Ne Kadar Kafein Aldın?
-            </Text>
           </View>
-          <TextInput
-            style={styles.textInput}
-            placeholder="Ad"
-            onChangeText={(text) => setCustomName(text)}
-          />
-          <TextInput
-            style={styles.textInput}
-            placeholder="Kafein Miktar (mg)"
-            onChangeText={(text) => setCustomCaffeinValue(Number(text))}
-            keyboardType="numeric"
-          />
-          <TouchableOpacity
-            style={styles.resetButton}
-            onPress={() => {
-              setCustomCaffeinList((prev) => [
-                ...prev,
-                {
-                  id: Math.random(),
-                  name: customName,
-                  value: customCaffeinValue,
-                },
-              ]);
-              setModulOpen(false);
-              setCaffeineValue((prev) => prev + customCaffeinValue);
-            }}
-          >
-            <Text style={styles.cardText}>Ekle</Text>
-          </TouchableOpacity>
+
+          <View style={styles.modalBody}>
+            <TextInput
+              style={styles.textInput}
+              placeholder="İçecek Adı (ör: Espresso)"
+              placeholderTextColor="#665E58"
+              value={customName}
+              onChangeText={setCustomName}
+            />
+
+            <TextInput
+              style={styles.textInput}
+              placeholder="Kafein Miktarı (mg)"
+              placeholderTextColor="#665E58"
+              value={customCaffeinValue}
+              onChangeText={setCustomCaffeinValue}
+              keyboardType="numeric"
+            />
+
+            <TouchableOpacity
+              style={[styles.primaryButton, styles.modalSubmitButton]}
+              onPress={handleCustomAdd}
+            >
+              <Text style={styles.primaryButtonText}>Listeye Ekle</Text>
+            </TouchableOpacity>
+          </View>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -254,110 +275,188 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#12100E",
   },
-  titleStyle: {
-    color: "#fff",
-    top: 0,
-    left: 10,
-    fontSize: 25,
-    fontFamily: "Oswald_700Bold",
-    textShadowColor: "#D4A373",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 10,
-    width: SCREEN_WIDTH,
-    height: 50,
-  },
-  fastAddContainer: {
-    width: SCREEN_WIDTH,
-    height: vs(250),
-    display: "flex",
-    alignItems: "flex-start",
+  center: {
     justifyContent: "center",
-    gap: 20,
-    marginLeft: 20,
-  },
-  fastAddCard: {
-    width: 350,
-    height: 50,
-    borderWidth: 1,
-    borderColor: "#fff",
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "flex-start",
     alignItems: "center",
-    padding: 10,
-    borderRadius: 10,
-    gap: 10,
   },
-  cardText: {
-    color: "#fff",
-    fontSize: 20,
+  titleStyle: {
+    color: "#F4EFEA",
+    fontSize: 24,
     fontFamily: "Oswald_700Bold",
-  },
-  fastAddTitle: {
-    color: "#fff",
-    fontSize: 25,
-    fontFamily: "Oswald_700Bold",
+    paddingHorizontal: 20,
+    marginTop: 10,
   },
   circularProgressStyle: {
     width: SCREEN_WIDTH,
-    height: vs(250),
-    display: "flex",
-    justifyContent: "center",
     alignItems: "center",
-    marginTop: 30,
+    marginVertical: 20,
   },
-  mgStyle: {
-    color: "#fff",
-    fontSize: 15,
-    marginTop: 8,
+  actionButtonsRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 20,
   },
   resetButton: {
-    width: 80,
-    height: 50,
-    backgroundColor: "#000000",
-    alignSelf: "flex-end",
-    marginRight: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
     borderWidth: 1,
-    borderRadius: 10,
-    borderColor: "#fff",
-    display: "flex",
+    borderColor: "#3A332E",
+    backgroundColor: "#1A1715",
     justifyContent: "center",
     alignItems: "center",
   },
-  todaysMainContainer: {
-    display: "flex",
+  resetButtonText: {
+    color: "#A0958E",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  primaryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: "#D4A373",
     justifyContent: "center",
-    alignItems: "flex-start",
-    marginLeft: 20,
+    alignItems: "center",
+  },
+  primaryButtonText: {
+    color: "#12100E",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  sectionContainer: {
+    paddingHorizontal: 20,
+    marginTop: 20,
     gap: 10,
   },
-  todaysContainer: {
-    display: "flex",
+  sectionHeader: {
     flexDirection: "row",
-    justifyContent: "flex-start",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  sectionTitle: {
+    color: "#F4EFEA",
+    fontSize: 20,
+    fontFamily: "Oswald_700Bold",
+  },
+  fastAddCard: {
+    width: "100%",
+    height: 52,
+    borderWidth: 1,
+    borderColor: "#2A2421",
+    backgroundColor: "#1A1715",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  cardTitle: {
+    color: "#F4EFEA",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  cardSubtitle: {
+    color: "#A0958E",
+    fontSize: 14,
+  },
+  historyCard: {
+    width: "100%",
+    height: 60,
+    borderWidth: 1,
+    borderColor: "#2A2421",
+    backgroundColor: "#1A1715",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  historyName: {
+    color: "#F4EFEA",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  historyValue: {
+    color: "#D4A373",
+    fontSize: 13,
+    marginTop: 2,
+  },
+  cardActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  addMoreButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(212, 163, 115, 0.15)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(212, 163, 115, 0.3)",
+  },
+  addMoreText: {
+    color: "#D4A373",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  deleteButton: {
+    padding: 7,
+    borderRadius: 8,
+    backgroundColor: "rgba(230, 57, 70, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(230, 57, 70, 0.25)",
+  },
+  emptyContainer: {
+    width: "100%",
+    height: 120,
+    justifyContent: "center",
     alignItems: "center",
     gap: 10,
+  },
+  emptyText: {
+    color: "#665E58",
+    fontSize: 14,
   },
   modulContainer: {
     flex: 1,
     backgroundColor: "#12100E",
-    display: "flex",
-    justifyContent: "flex-start",
-    alignItems: "flex-start",
-    gap: 15,
-    padding: 10,
+    padding: 20,
   },
-  textInput: {
-    width: vs(280),
-    height: 50,
-    borderColor: "#fff",
-    borderRadius: 10,
-    backgroundColor: "white",
-    color: "#908989",
-    fontSize: 15,
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 30,
+  },
+  modalTitle: {
+    color: "#F4EFEA",
+    fontSize: 22,
     fontFamily: "Oswald_700Bold",
   },
-  todaysCard: {},
+  modalBody: {
+    gap: 16,
+  },
+  textInput: {
+    width: "100%",
+    height: 54,
+    borderColor: "#2A2421",
+    borderWidth: 1,
+    borderRadius: 12,
+    backgroundColor: "#1A1715",
+    color: "#F4EFEA",
+    paddingHorizontal: 16,
+    fontSize: 15,
+  },
+  modalSubmitButton: {
+    height: 54,
+    marginTop: 10,
+  },
 });
 
 export default Today;
