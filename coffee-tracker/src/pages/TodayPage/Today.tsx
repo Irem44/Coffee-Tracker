@@ -21,8 +21,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFonts, Oswald_700Bold } from "@expo-google-fonts/oswald";
 import Toast from "react-native-toast-message";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SCREEN_WIDTH = Dimensions.get("screen").width;
+
+//There should be a key to keep the list
+//*Keys are outside the component because I don't want components to re-render when anything changes
+
+const STORAGE_KEY_LIST = "@caffeine_list";
+const STORAGE_KEY_DATE = "@caffeine_last_date";
 
 type DrinkItem = {
   id: string;
@@ -32,16 +39,17 @@ type DrinkItem = {
 
 const Today = () => {
   const [caffeineValue, setCaffeineValue] = useState<number>(0);
+  const [waterValue, setWaterValue] = useState<number>(0);
   const [latte] = useState<number>(80);
   const [filtre] = useState<number>(140);
   const [americano] = useState<number>(120);
   const [maxValue] = useState<number>(400);
-
+  const [maxWaterValue, setMaxWaterValue] = useState<number>(5000);
   const [modulOpen, setModulOpen] = useState<boolean>(false);
   const [customName, setCustomName] = useState<string>("");
   const [customCaffeinValue, setCustomCaffeinValue] = useState<string>("");
   const [customCaffeinList, setCustomCaffeinList] = useState<DrinkItem[]>([]);
-
+  const [loadedData, setLoadedData] = useState<boolean>(false);
   const [fontsLoaded] = useFonts({
     Oswald_700Bold,
   });
@@ -59,7 +67,17 @@ const Today = () => {
     }
   }, [caffeineValue]);
 
-  // Yeni içecek ekleme fonksiyonu
+  useEffect(() => {
+    if (loadedData) {
+      saveData();
+    }
+  }, [customCaffeinList, loadedData]);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Add Custom Drink
   const handleAddDrink = (name: string, value: number) => {
     const newItem: DrinkItem = {
       id: Date.now().toString() + Math.random().toString(),
@@ -70,13 +88,12 @@ const Today = () => {
     setCaffeineValue((prev) => prev + value);
   };
 
-  // İçecek silme fonksiyonu (Toplama değerden mg miktarını düşer)
+  // Remove Drink
   const handleDeleteDrink = (id: string, value: number) => {
     setCustomCaffeinList((prev) => prev.filter((item) => item.id !== id));
     setCaffeineValue((prev) => Math.max(0, prev - value));
   };
 
-  // Özel içecek ekleme ve modal kapatma
   const handleCustomAdd = () => {
     const numericValue = Number(customCaffeinValue);
     if (!customName.trim() || isNaN(numericValue) || numericValue <= 0) {
@@ -95,6 +112,39 @@ const Today = () => {
     setModulOpen(false);
   };
 
+  const saveData = async () => {
+    try {
+      const todayDate = new Date().toISOString().split("T")[0];
+      const stringList = JSON.stringify(customCaffeinList);
+
+      await AsyncStorage.setItem(STORAGE_KEY_LIST, stringList);
+      await AsyncStorage.setItem(STORAGE_KEY_DATE, todayDate);
+    } catch (error) {
+      console.error("Submit error", error);
+    }
+  };
+  const loadData = async () => {
+    try {
+      const storedList = await AsyncStorage.getItem(STORAGE_KEY_LIST);
+      const storedDate = await AsyncStorage.getItem(STORAGE_KEY_DATE);
+      const todayDate = new Date().toISOString().split("T")[0];
+
+      if (storedDate !== todayDate) {
+        await AsyncStorage.multiRemove([STORAGE_KEY_LIST, STORAGE_KEY_DATE]);
+        setCustomCaffeinList([]);
+        setCaffeineValue(0);
+      } else if (storedList) {
+        const parsedList: DrinkItem[] = JSON.parse(storedList);
+        setCustomCaffeinList(parsedList);
+        const total = parsedList.reduce((sum, item) => sum + item.value, 0);
+        setCaffeineValue(total);
+      }
+    } catch (error) {
+      console.error("Data loading error", error);
+    } finally {
+      setLoadedData(true);
+    }
+  };
   if (!fontsLoaded) {
     return (
       <View style={[styles.container, styles.center]}>
@@ -108,44 +158,92 @@ const Today = () => {
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         <Text style={styles.titleStyle}>{getTime()}</Text>
 
-        {/* Circular Progress Container */}
-        <View style={styles.circularProgressStyle}>
-          <CircularProgress
-            value={caffeineValue}
-            maxValue={maxValue}
-            radius={105}
-            duration={800}
-            progressValueColor={"#F4EFEA"}
-            activeStrokeColor={caffeineValue > 400 ? "#E63946" : "#D4A373"}
-            inActiveStrokeColor={"#2A2421"}
-            activeStrokeWidth={16}
-            inActiveStrokeWidth={12}
-            title={"mg"}
-            titleColor={"#A0958E"}
-            titleStyle={{ fontWeight: "600", fontSize: 15 }}
-          />
+        <View
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 15,
+            padding: 20,
+          }}
+        >
+          {/* Circular Progress Container*/}
+          <View style={styles.circularProgressStyle}>
+            <CircularProgress
+              value={caffeineValue}
+              maxValue={maxValue}
+              radius={80}
+              duration={800}
+              progressValueColor={"#F4EFEA"}
+              activeStrokeColor={caffeineValue > 400 ? "#E63946" : "#D4A373"}
+              inActiveStrokeColor={"#7d6f67"}
+              activeStrokeWidth={16}
+              inActiveStrokeWidth={12}
+              title={"mg"}
+              titleColor={"#A0958E"}
+              titleStyle={{ fontWeight: "600", fontSize: 15 }}
+            />
 
-          {/* Action Buttons Row */}
-          <View style={styles.actionButtonsRow}>
-            <TouchableOpacity
-              style={styles.resetButton}
-              onPress={() => {
-                setCaffeineValue(0);
-                setCustomCaffeinList([]);
-              }}
-            >
-              <Text style={styles.resetButtonText}>Sıfırla</Text>
-            </TouchableOpacity>
+            {/* Action Buttons Row */}
+            <View style={styles.actionButtonsRow}>
+              <TouchableOpacity
+                style={styles.resetButton}
+                onPress={() => {
+                  setCaffeineValue(0);
+                  setCustomCaffeinList([]);
+                }}
+              >
+                <Text style={styles.resetButtonText}>Sıfırla</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() => setModulOpen(true)}
-            >
-              <Text style={styles.primaryButtonText}>+ Ekle</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={() => setModulOpen(true)}
+              >
+                <Text style={styles.primaryButtonText}>+ Ekle</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          {/* Circular Progress Container (Water)*/}
+          <View style={styles.circularProgressStyle}>
+            <CircularProgress
+              value={waterValue}
+              maxValue={maxWaterValue}
+              radius={80}
+              duration={800}
+              progressValueColor={"#F4EFEA"}
+              activeStrokeColor={"#38bdf8"}
+              inActiveStrokeColor={"#e0f2fe"}
+              activeStrokeWidth={16}
+              inActiveStrokeWidth={12}
+              title={"💧 (200ml)"}
+              titleColor={"#F4EFEA"}
+              titleStyle={{ fontSize: 15 }}
+            />
+
+            {/* Action Buttons Row */}
+            <View style={styles.actionButtonsRow}>
+              <TouchableOpacity
+                style={styles.resetButton}
+                onPress={() => {
+                  setWaterValue(0);
+                }}
+              >
+                <Text style={styles.resetButtonText}>Sıfırla</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={() => {
+                  setWaterValue((prev: any) => prev + 200);
+                }}
+              >
+                <Text style={styles.primaryButtonText}>+ Ekle</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-
         {/* Fast Add Section */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
@@ -286,19 +384,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 10,
   },
-  circularProgressStyle: {
-    width: SCREEN_WIDTH,
-    alignItems: "center",
-    marginVertical: 20,
-  },
+  circularProgressStyle: {},
   actionButtonsRow: {
     flexDirection: "row",
     gap: 12,
     marginTop: 20,
   },
   resetButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    padding: 10,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#3A332E",
@@ -312,8 +405,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   primaryButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    padding: 10,
     borderRadius: 12,
     backgroundColor: "#D4A373",
     justifyContent: "center",
