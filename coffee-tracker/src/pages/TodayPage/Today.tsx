@@ -9,6 +9,7 @@ import {
   ScrollView,
   Modal,
   TextInput,
+  Alert,
 } from "react-native";
 import CircularProgress from "react-native-circular-progress-indicator";
 import { getTime } from "../../utils/getTime";
@@ -43,7 +44,7 @@ const Today = () => {
   const [latte] = useState<number>(80);
   const [filtre] = useState<number>(140);
   const [americano] = useState<number>(120);
-  const [maxValue] = useState<number>(400);
+  const [maxValue] = useState<number>(300);
   const [maxWaterValue, setMaxWaterValue] = useState<number>(5000);
   const [modulOpen, setModulOpen] = useState<boolean>(false);
   const [customName, setCustomName] = useState<string>("");
@@ -238,6 +239,9 @@ const Today = () => {
                 onPress={() => {
                   setWaterValue((prev: any) => prev + 200);
                 }}
+                onLongPress={() => {
+                  <Text>Hello</Text>;
+                }}
               >
                 <Text style={styles.primaryButtonText}>+ Ekle</Text>
               </TouchableOpacity>
@@ -387,6 +391,8 @@ const styles = StyleSheet.create({
   circularProgressStyle: {},
   actionButtonsRow: {
     flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     gap: 12,
     marginTop: 20,
   },
